@@ -1,0 +1,16 @@
+DTQ – Monitoramento (PWA offline)
+
+Conteúdo:
+- index.html: dashboard DTQ com limite de alerta em 35%
+- manifest.webmanifest e ícones: instalação como app
+- sw.js: cache para uso offline
+
+INSTALAÇÃO NO SAMSUNG
+1. Publique o conteúdo desta pasta em um endereço HTTPS (por exemplo, usando Netlify Drop).
+2. No celular, abra o endereço no Chrome ou Samsung Internet enquanto estiver conectado à internet.
+3. No Chrome: menu ⋮ > Instalar app (ou Adicionar à tela inicial). No Samsung Internet: menu > Adicionar página a > Tela inicial.
+4. Abra o ícone DTQ uma vez. Depois disso, o app e os gráficos carregam sem internet.
+5. No app, toque em escolher arquivo e selecione o TXT em Meus Arquivos. O TXT é lido localmente no aparelho; não é enviado para servidor.
+
+IMPORTANTE
+A instalação inicial exige HTTPS e internet para baixar o app e registrar o cache offline. Depois de instalado e aberto ao menos uma vez, o dashboard funciona sem conexão. Para atualizar o app, publique uma nova versão e abra-o novamente com internet.

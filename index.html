@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17202a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DTQ Monitoramento">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>DDS • Diagnóstico de Resistência — Evento 54</title>
+<style>
+:root{
+  --bg:#f3f5f7; --card:#fff; --text:#17202a; --muted:#687385;
+  --border:#d9e0e7; --green:#3366CC; --blue:#DC3912; --orange:#FCB03D;
+  --purple:#49AD4F; --red:#990099;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+header{padding:8px 0 0}
+.toolbar{
+  background:#fff;border:1px solid var(--border);border-radius:16px;
+  padding:14px 18px;display:flex;gap:12px;align-items:end;flex-wrap:wrap;
+  box-shadow:0 2px 7px rgba(0,0,0,.04)
+}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:#536070;text-transform:uppercase}
+input[type=file],input[type=date],input[type=number],select{
+  height:38px;border:1px solid #ccd5df;border-radius:8px;background:#fff;
+  padding:0 10px;color:#263342;font-size:13px
+}
+input[type=file]{padding:7px;width:300px}
+input[type=date]{width:125px}
+input[type=number]{width:105px}
+select{width:255px}
+button{
+  height:38px;border:0;border-radius:8px;padding:0 15px;font-weight:700;
+  cursor:pointer;background:#3366CC;color:#fff
+}
+button.secondary{background:#edf1f5;color:#263342}
+button:hover{filter:brightness(.97)}
+.status{font-size:12px;color:#697586;margin:8px 2px 10px}
+main{padding:0 1px 24px}
+.grid6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:16px;min-height:102px;box-shadow:0 2px 7px rgba(0,0,0,.035)
+}
+.kpi .title{font-size:11px;text-transform:uppercase;color:#59687a;font-weight:700}
+.kpi .value{font-size:27px;font-weight:800;margin-top:13px}
+.kpi .sub{font-size:11px;color:#788496;margin-top:6px}
+.layout{display:grid;grid-template-columns:1fr 3fr;gap:14px;margin-top:14px}
+.card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:17px;box-shadow:0 2px 7px rgba(0,0,0,.035)
+}
+.card h2{font-size:14px;margin:0 0 4px}
+.card .desc{font-size:11px;color:#708094;margin-bottom:12px}
+.chartbox{height:500px;position:relative}
+svg{width:100%;height:100%;display:block}
+.chart-tooltip{
+  position:absolute;display:none;pointer-events:none;z-index:10;
+  background:rgba(23,32,42,.96);color:#fff;border-radius:8px;
+  padding:9px 11px;font-size:11px;line-height:1.5;
+  box-shadow:0 3px 12px rgba(0,0,0,.22);min-width:210px;
+}
+.chart-tooltip b{font-size:11px}
+.chart-tooltip .tt-row{white-space:nowrap}
+.chart-tooltip .tt-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#5f6d7d;margin-bottom:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:14px;height:3px;border-radius:4px;display:inline-block}
+.diagnostic{font-size:12px;color:#5e6b7b;line-height:1.5;display:flex;flex-direction:column;flex:1;min-height:0}
+.alert{
+  border:1px dashed #cfd8e2;border-radius:10px;padding:10px;margin-top:9px;
+  background:#fbfcfd
+}
+.diagnostic-bottom{margin-top:auto}
+.alert.ok{border-color:#b8dcc7;background:#f5fbf7;color:#21663e}
+.alert.warn{border-color:#e9c58f;background:#fffaf1;color:#8a5b12}
+.alert.bad{border-color:#e5b5b5;background:#fff7f7;color:#9a3030}
+.summary{font-size:12px;line-height:1.7}
+.summary b{color:#344255}
+.tablewrap{max-height:310px;overflow:auto;border:1px solid var(--border);border-radius:9px}
+table{border-collapse:collapse;width:100%;font-size:11px}
+th,td{padding:7px 8px;border-bottom:1px solid #edf0f3;text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:#f7f9fb;color:#536070;text-align:right}
+th:first-child,td:first-child{text-align:left}
+.empty{height:100%;display:flex;align-items:center;justify-content:center;color:#8a95a3;font-size:13px}
+.footer{font-size:11px;color:#7b8794;margin-top:12px}
+.delta-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0 12px}
+.delta-kpi{border:1px solid var(--border);border-radius:10px;padding:11px;background:#fbfcfd}
+.delta-kpi .label{font-size:10px;text-transform:uppercase;color:#667487;font-weight:700}
+.delta-kpi .value{font-size:22px;font-weight:800;margin-top:6px}
+.formula{font-family:Consolas,monospace;background:#f5f7fa;border:1px solid #e1e6ec;border-radius:8px;padding:9px 10px;font-size:12px;color:#344255}
+.km-group{display:flex;align-items:flex-end;gap:12px;margin-left:auto;}
+.km-group .field{width:auto;}
+@media(max-width:1150px){.km-group{margin-left:0;}}
+@media(max-width:700px){.delta-kpis{grid-template-columns:1fr}}
+@media(max-width:1150px){.grid6{grid-template-columns:repeat(3,1fr)}.layout{grid-template-columns:1fr}}
+@media(max-width:700px){.grid6{grid-template-columns:repeat(2,1fr)}.toolbar{align-items:stretch}.field{width:100%}.field input,.field select{width:100%}}
+.event-field{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="toolbar">
+    <div class="field">
+      <label>Arquivo de log DDS (.TXT)</label>
+      <input id="file" type="file" accept=".txt,text/plain">
+    </div>
+    <div class="field event-field">
+      <label>Evento analisado</label>
+      <select id="event"><option value="54">Evento 54 — Resistência</option></select>
+    </div>
+    <div class="field">
+      <label>Data inicial</label>
+      <input id="start" type="date">
+    </div>
+    <div class="field">
+      <label>Hora inicial</label>
+      <input id="startTime" type="time" value="00:00">
+    </div>
+    <div class="field">
+      <label>Data final</label>
+      <input id="end" type="date">
+    </div>
+    <div class="field">
+      <label>Hora final</label>
+      <input id="endTime" type="time" value="23:59:59">
+    </div>
+    <button id="apply">Aplicar análise</button>
+    
+    <div class="km-group">
+      <div class="field"><label>KM J1</label><input id="kmJ1" type="text" value="—" readonly style="width:110px;background:#f7f9fb;font-weight:700"></div>
+      <div class="field"><label>KM do DTQ</label><input id="kmDtq" type="text" value="—" readonly style="width:110px;background:#f7f9fb;font-weight:700"></div>
+      <div class="field"><label>KM J2</label><input id="kmJ2" type="text" value="—" readonly style="width:110px;background:#f7f9fb;font-weight:700"></div>
+    </div>
+  </div>
+  <div id="status" class="status">Selecione o TXT para iniciar a análise.</div>
+</header>
+
+<main>
+  <section class="layout">
+    <div class="card">
+      <h2>Diagnóstico</h2>
+      <div class="desc"></div>
+      <div id="diagnostic" class="diagnostic">
+        <div class="alert">Aguardando arquivo.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Gráfico DTQ</h2>
+      <div class="legend">
+        <span><i class="swatch" style="background:#3366CC"></i>RTM - Resistência Total Medida</span>
+        <span><i class="swatch" style="background:#DC3912"></i>PAM - Ponto de Alarme da Média</span>
+        <span><i class="swatch" style="background:#FCB03D"></i>RC - Resistência do Cabo</span>
+        <span><i class="swatch" style="background:#49AD4F"></i>RMTU - Resistência Mínima Trilho Úmido</span>
+        <span><i class="swatch" style="background:#990099"></i>PAA - Ponto Alarme Absoluto</span>
+      </div>
+      <div class="chartbox" id="chartbox"><div class="empty">Aguardando arquivo.</div></div>
+    </div>
+  </section>
+
+
+
+
+
+
+  <section class="grid6" style="grid-template-columns:repeat(4,1fr);display:none">
+    <div class="kpi"><div class="title">Resistência medida</div><div id="kR" class="value">—</div><div class="sub">média do período filtrado</div></div>
+    <div class="kpi"><div class="title">Máxima resistência medida</div><div id="kRMax" class="value">—</div><div class="sub">máxima do período filtrado</div></div>
+    <div class="kpi"><div class="title">Resistência do cabo</div><div id="kCable" class="value">—</div><div class="sub">média do período filtrado</div></div>
+    <div class="kpi"><div class="title">Mín. trilho úmido</div><div id="kWet" class="value">—</div><div class="sub">média do período filtrado</div></div>
+  </section>
+
+</main>
+
+<script>
+let allRows=[];
+let kmJ1="—";
+let kmDtq="—";
+let kmJ2="—";
+
+function num(v){
+  if(v===undefined || v===null || v==="") return null;
+  const n=Number(String(v).trim().replace(",","."));
+  return Number.isFinite(n)?n:null;
+}
+function parseDate(c){
+  const day=Number(c[5]), month=Number(c[6]), year0=Number(c[7]);
+  const year=year0<100?2000+year0:year0;
+  const h=Number(c[8]), m=Number(c[9]), s=Number(c[10]);
+  if(![day,month,year,h,m,s].every(Number.isFinite)) return null;
+  const d=new Date(year,month-1,day,h,m,s);
+  return Number.isNaN(d.getTime())?null:d;
+}
+function fmt(n){
+  return n==null?"—":n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(d){
+  return d.toLocaleString("pt-BR");
+}
+function isoDate(d){ return d.toISOString().slice(0,10); }
+
+document.getElementById("file").addEventListener("change", async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const text=await f.text();
+  parseText(text,f.name);
+});
+
+function parseText(text,name){
+  const lines=text.split(/\r?\n/);
+  allRows=[];
+  kmJ1="—";
+  kmDtq="—";
+  kmJ2="—";
+  let event54=0, valid=0;
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const c=line.split(";");
+    if(c.length<22) continue;
+
+    const ev=String(c[1]).trim();
+
+    // Quilometragem: evento 55, campos 40, 41 e 42.
+    if(ev==="55"){
+      if(c.length>=40 && kmJ1==="—"){
+        const km=String(c[39]).trim();
+        if(km) kmJ1=km;
+      }
+      if(c.length>=41 && kmDtq==="—"){
+        const km=String(c[40]).trim();
+        if(km) kmDtq=km;
+      }
+      if(c.length>=42 && kmJ2==="—"){
+        const km=String(c[41]).trim();
+        if(km) kmJ2=km;
+      }
+    }
+
+    if(ev!=="54") continue;
+
+    event54++;
+    const d=parseDate(c);
+    if(!d) continue;
+    allRows.push({
+      d,
+      r:num(c[14]), avg:num(c[18]), cable:num(c[19]),
+      wet:num(c[20]), abs:num(c[21]),
+      counter:num(c[0])
+    });
+    valid++;
+  }
+  allRows.sort((a,b)=>a.d-b.d);
+  if(!allRows.length){
+    document.getElementById("status").textContent=`Arquivo ${name}: nenhum registro válido do evento 54.`;
+    return;
+  }
+  // Ao abrir um novo TXT, iniciar automaticamente nos últimos 3 dias do arquivo.
+  // Os filtros continuam livres para o usuário escolher qualquer outro intervalo.
+  const lastDate=allRows[allRows.length-1].d;
+  const first3=new Date(lastDate.getTime()-3*24*60*60*1000);
+  const startDate=first3 < allRows[0].d ? allRows[0].d : first3;
+  document.getElementById("start").value=isoDate(startDate);
+  document.getElementById("startTime").value=timeOnly(startDate);
+  document.getElementById("end").value=isoDate(lastDate);
+  document.getElementById("endTime").value=timeOnly(lastDate);
+  document.getElementById("kmJ1").value=kmJ1;
+  document.getElementById("kmDtq").value=kmDtq;
+  document.getElementById("kmJ2").value=kmJ2;
+  document.getElementById("status").textContent=`${name} • ${lines.length-1} linhas • ${event54.toLocaleString("pt-BR")} registros do evento 54 • ${valid.toLocaleString("pt-BR")} registros válidos.`;
+  render();
+}
+
+function timeOnly(d){
+  return [d.getHours(),d.getMinutes(),d.getSeconds()].map((v,i)=>String(v).padStart(2,"0")).join(":");
+}
+function filterDateTime(dateId,timeId,isEnd){
+  const ds=document.getElementById(dateId).value;
+  if(!ds) return null;
+  const ts=document.getElementById(timeId).value || (isEnd?"23:59:59":"00:00:00");
+  const parts=ts.split(":").map(Number);
+  return new Date(`${ds}T${String(parts[0]).padStart(2,"0")}:${String(parts[1]).padStart(2,"0")}:${String(parts[2]||0).padStart(2,"0")}`);
+}
+function selectedRows(){
+  const s=filterDateTime("start","startTime",false);
+  const e=filterDateTime("end","endTime",true);
+  return allRows.filter(x=>(!s || x.d>=s)&&(!e || x.d<=e));
+}
+document.getElementById("apply").onclick=render;
+const fullButton=document.getElementById("full");
+if(fullButton) fullButton.onclick=()=>{
+  if(!allRows.length)return;
+  // Ao abrir um novo TXT, iniciar automaticamente nos últimos 3 dias do arquivo.
+  // Os filtros continuam livres para o usuário escolher qualquer outro intervalo.
+  const lastDate=allRows[allRows.length-1].d;
+  const first3=new Date(lastDate.getTime()-3*24*60*60*1000);
+  const startDate=first3 < allRows[0].d ? allRows[0].d : first3;
+  document.getElementById("start").value=isoDate(startDate);
+  document.getElementById("startTime").value=timeOnly(startDate);
+  document.getElementById("end").value=isoDate(lastDate);
+  document.getElementById("endTime").value=timeOnly(lastDate);
+  render();
+};
+
+function stats(arr,key){
+  const a=arr.map(x=>x[key]).filter(Number.isFinite);
+  if(!a.length)return null;
+  return {min:Math.min(...a),max:Math.max(...a),avg:a.reduce((p,v)=>p+v,0)/a.length};
+}
+
+function render(){
+  const rows=selectedRows();
+  if(!rows.length)return;
+  const rS=stats(rows,"r"), aS=stats(rows,"avg"), cS=stats(rows,"cable"), wS=stats(rows,"wet"), absS=stats(rows,"abs");
+
+  // Os KPIs de resistência agora consideram todo o período filtrado.
+  document.getElementById("kR").textContent=rS?fmt(rS.avg):"—";
+  document.getElementById("kRMax").textContent=rS?fmt(rS.max):"—";
+  document.getElementById("kCable").textContent=cS?fmt(cS.avg):"—";
+  document.getElementById("kWet").textContent=wS?fmt(wS.avg):"—";
+
+  drawMain(rows);
+  drawDiagnostic(rows);
+}
+
+function niceRange(values){
+  const v=values.filter(Number.isFinite);
+  if(!v.length)return [0,1];
+  let lo=Math.min(...v), hi=Math.max(...v);
+  if(lo===hi){lo-=1;hi+=1}
+  const pad=(hi-lo)*0.08;
+  return [lo-pad,hi+pad];
+}
+
+function drawSvg(container, rows, series, height, options={}){
+  const W=container.clientWidth||900, H=height, ml=60,mr=18,mt=18,mb=48;
+  const iw=W-ml-mr, ih=H-mt-mb;
+  const vals=[];
+  series.forEach(s=>rows.forEach(r=>{if(Number.isFinite(r[s.key]))vals.push(r[s.key])}));
+  const [autoY0,autoY1]=niceRange(vals);
+  const [y0,y1]=options.fixedRange||[autoY0,autoY1];
+  const t0=rows[0].d.getTime(), t1=rows[rows.length-1].d.getTime()||t0+1;
+  const x=d=>ml+((d.getTime()-t0)/(t1-t0||1))*iw;
+  const y=v=>mt+(1-(v-y0)/(y1-y0))*ih;
+  const fmtY=v=>fmt(v);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Grid
+  for(let i=0;i<=5;i++){
+    const yy=mt+i*ih/5, val=y1-i*(y1-y0)/5;
+    svg+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="#e8edf2"/>`;
+    svg+=`<text x="${ml-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#7a8795">${fmtY(val)}</text>`;
+  }
+
+  if(options.extraLines){
+    for(const ln of options.extraLines){
+      const yy=y(ln.value);
+      svg+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="${ln.color}" stroke-width="1.4" stroke-dasharray="6 4"/>`;
+      svg+=`<text x="${W-mr-4}" y="${yy-5}" text-anchor="end" font-size="10" fill="${ln.color}">${ln.label||fmt(ln.value)}</text>`;
+    }
+  }
+
+  // X labels
+  const n=Math.min(7,rows.length);
+  for(let i=0;i<n;i++){
+    const rr=rows[Math.round(i*(rows.length-1)/(n-1||1))], xx=x(rr.d);
+    svg+=`<line x1="${xx}" x2="${xx}" y1="${mt}" y2="${H-mb}" stroke="#f0f2f5"/>`;
+    svg+=`<text x="${xx}" y="${H-18}" text-anchor="middle" font-size="10" fill="#7a8795">${rr.d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}</text>`;
+  }
+
+  // Curvas
+  for(const s of series){
+    let path="", started=false;
+    for(const r of rows){
+      if(!Number.isFinite(r[s.key])){started=false;continue}
+      const px=x(r.d), py=y(r[s.key]);
+      path+=(started?"L":"M")+px.toFixed(1)+" "+py.toFixed(1)+" ";
+      started=true;
+    }
+    svg+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${s.width||2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+
+  // Linha vertical de seleção
+  svg+=`<line id="hoverLine" x1="${ml}" x2="${ml}" y1="${mt}" y2="${H-mb}" stroke="#596575" stroke-width="1" stroke-dasharray="4 3" opacity="0"/>`;
+  svg+=`<rect id="hoverArea" x="${ml}" y="${mt}" width="${iw}" height="${ih}" fill="transparent"/>`;
+  svg+=`</svg>`;
+
+  container.innerHTML=svg;
+
+  let tooltip=container.querySelector(".chart-tooltip");
+  if(!tooltip){
+    tooltip=document.createElement("div");
+    tooltip.className="chart-tooltip";
+    container.appendChild(tooltip);
+  }
+
+  const area=container.querySelector("#hoverArea");
+  const hoverLine=container.querySelector("#hoverLine");
+
+  function showTooltip(evt){
+    const rect=container.getBoundingClientRect();
+    const svgX=evt.clientX-rect.left;
+    const ratio=Math.max(0,Math.min(1,(svgX-ml)/iw));
+    const targetTime=t0+ratio*(t1-t0);
+
+    // Busca binária pelo registro temporal mais próximo.
+    let lo=0, hi=rows.length-1;
+    while(lo<hi){
+      const mid=Math.floor((lo+hi)/2);
+      if(rows[mid].d.getTime()<targetTime) lo=mid+1;
+      else hi=mid;
+    }
+    let idx=lo;
+    if(idx>0){
+      const a=Math.abs(rows[idx].d.getTime()-targetTime);
+      const b=Math.abs(rows[idx-1].d.getTime()-targetTime);
+      if(b<a) idx--;
+    }
+
+    const row=rows[idx];
+    const colors=options.tooltipColors||{
+      r:"#3366CC", avg:"#DC3912", cable:"#FCB03D", wet:"#49AD4F", abs:"#990099"
+    };
+    const labels=options.tooltipLabels||{
+      r:"RTM - Resistência Total Medida",
+      avg:"PAM - Ponto de Alarme da Média",
+      cable:"RC - Resistência do Cabo",
+      wet:"RMTU - Resistência Mínima Trilho Úmido",
+      abs:"PAA - Ponto Alarme Absoluto"
+    };
+
+    tooltip.innerHTML=
+      `<b>${fmtDate(row.d)}</b>`+
+      series.map(s=>{
+        const v=row[s.key];
+        return Number.isFinite(v)
+          ? `<div class="tt-row"><span class="tt-dot" style="background:${colors[s.key]}"></span>${labels[s.key]}: <b>${fmt(v)}</b></div>`
+          : "";
+      }).join("");
+
+    const lineX=x(row.d);
+    hoverLine.setAttribute("x1",lineX);
+    hoverLine.setAttribute("x2",lineX);
+    hoverLine.setAttribute("opacity","1");
+
+    // Posiciona o tooltip sem sair do gráfico.
+    tooltip.style.display="block";
+    const tw=tooltip.offsetWidth, th=tooltip.offsetHeight;
+    let left=lineX+12;
+    if(left+tw>container.clientWidth-4) left=lineX-tw-12;
+    let top=(evt.clientY-rect.top)-th-10;
+    if(top<4) top=4;
+    tooltip.style.left=Math.max(4,left)+"px";
+    tooltip.style.top=Math.max(4,top)+"px";
+  }
+
+  area.addEventListener("mousemove",showTooltip);
+  area.addEventListener("mouseenter",showTooltip);
+  area.addEventListener("mouseleave",()=>{
+    tooltip.style.display="none";
+    hoverLine.setAttribute("opacity","0");
+  });
+}
+function computeDelta(rows){
+  if(!rows.length) return [];
+  const valid=rows.filter(x=>Number.isFinite(x.r)&&Number.isFinite(x.cable)&&Number.isFinite(x.wet));
+  if(!valid.length) return [];
+
+  // Metodologia operacional:
+  // 1) Divide o período em blocos de avaliação de 20 minutos (00, 20 e 40).
+  // 2) Em cada bloco de avaliação, usa o MAIOR RTM, MAIOR RC e MAIOR RMTU,
+  //    independentemente de estarem na mesma medição.
+  // 3) Calcula um único Delta para a bloco de avaliação.
+  // 4) x = 1 quando 0,15 < Delta < 0,95.
+  // 5) A média de x em 36 blocos de avaliação representa 12 horas.
+  const buckets=new Map();
+  for(const row of valid){
+    const d=new Date(row.d);
+    d.setSeconds(0,0);
+    d.setMinutes(Math.floor(d.getMinutes()/20)*20);
+    const key=d.getTime();
+    if(!buckets.has(key)) buckets.set(key,[]);
+    buckets.get(key).push(row);
+  }
+
+  const out=[];
+  [...buckets.keys()].sort((a,b)=>a-b).forEach(t=>{
+    const a=buckets.get(t);
+    const rtm=Math.max(...a.map(q=>q.r));
+    const rc=Math.max(...a.map(q=>q.cable));
+    const rmtu=Math.max(...a.map(q=>q.wet));
+    const den=rmtu-rc;
+    if(!Number.isFinite(den)||den===0) return;
+
+    // Fórmula exatamente como utilizada na análise:
+    // ((RMTU - RC) - (RTM - RC)) / (RMTU - RC)
+    const partRtmRc=rtm-rc;
+    const partRmtuRc=rmtu-rc;
+    const numerator=partRmtuRc-partRtmRc;
+    const delta=numerator/partRmtuRc;
+    const x=(delta>0.15 && delta<0.95)?1:0;
+
+    out.push({
+      d:new Date(t),
+      r:rtm,
+      cable:rc,
+      wet:rmtu,
+      partRtmRc,
+      partRmtuRc,
+      numerator,
+      delta,
+      x,
+      n:a.length
+    });
+  });
+
+  // Média móvel de x: 36 blocos de avaliação = 12 horas.
+  let sum=0;
+  for(let i=0;i<out.length;i++){
+    sum+=out[i].x;
+    if(i>=36) sum-=out[i-36].x;
+    const n=Math.min(i+1,36);
+    out[i].mean12=sum/n;
+  }
+  return out;
+}
+
+function drawDelta(rows){
+  const data=computeDelta(rows);
+  if(!data.length){
+    document.getElementById('kDeltaAvg').textContent='—';
+    document.getElementById('kDelta12Avg').textContent='—';
+    document.getElementById('kDelta12').textContent='—';
+    document.getElementById('kDeltaPct').textContent='—';
+    document.getElementById('deltaChart').innerHTML='<div class="empty">Não foi possível calcular Δ com os registros disponíveis.</div>';
+    document.getElementById('deltaDiagnostic').innerHTML='';
+    document.getElementById('deltaLast10').innerHTML='<tr><td colspan="10" style="text-align:center;color:#8a95a3">Não foi possível calcular.</td></tr>';
+    return;
+  }
+  const last=data[data.length-1];
+  const pct=100*data.filter(x=>x.x===1).length/data.length;
+  const avgDelta=data.reduce((sum,x)=>sum+x.delta,0)/data.length;
+  const last36=data.slice(-36);
+  const avgDelta12=last36.reduce((sum,x)=>sum+x.delta,0)/last36.length;
+  document.getElementById('kDeltaAvg').textContent=(100*avgDelta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  document.getElementById('kDelta12Avg').textContent=(100*avgDelta12).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  document.getElementById('kDelta12').textContent=(100*last.mean12).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  document.getElementById('kDeltaPct').textContent=pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+
+  // Adaptador para o desenhador de SVG existente.
+  const chartData=data.map(q=>({...q,deltaPct:100*q.delta,mean12Pct:100*q.mean12}));
+  drawSvg(document.getElementById('deltaChart'),chartData,[
+    {key:'deltaPct',color:'#3366CC',width:2},
+    {key:'mean12Pct',color:'#DC3912',width:2}
+  ],400, {fixedRange:[-5,105], extraLines:[
+    {value:15,color:'#49AD4F',label:'15%'},
+    {value:95,color:'#990099',label:'95%'}
+  ], tooltipLabels:{deltaPct:'Δ da bloco de avaliação',mean12Pct:'Média x (12 h)'}, tooltipColors:{deltaPct:'#3366CC',mean12Pct:'#DC3912'}});
+
+  const n12=Math.min(36,data.length);
+  const last12=data.slice(-n12);
+  const ones=last12.filter(x=>x.x===1).length;
+  document.getElementById('deltaDiagnostic').innerHTML=
+    `<div class="alert">Na última bloco de avaliação de 20 min: <b>Δ = ${(100*last.delta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b>, <b>x = ${last.x}</b> e média móvel de 12 h = <b>${(100*last.mean12).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b>.</div>`+
+    `<div class="alert">A média de Δ no período foi <b>${(100*avgDelta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b>. Foram encontradas <b>${data.length.toLocaleString('pt-BR')}</b> blocos de avaliação de 20 minutos. No período selecionado, x = 1 em <b>${pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b> dos pontos.</div>`+
+    `<div class="alert">Na janela final de 12 h, <b>${ones} de ${n12}</b> pontos atenderam à regra <b>0,15 &lt; Δ &lt; 0,95</b>.</div>`+
+    `<div class="alert"><b>Últimas 10 blocos de avaliação:</b> a tabela abaixo mostra explicitamente os máximos usados, as parcelas da fórmula, o Δ e o x.</div>`;
+
+  const last10=data.slice(-10).reverse();
+  document.getElementById('deltaLast10').innerHTML=last10.map(q=>`
+    <tr>
+      <td>${fmtDate(q.d)}</td>
+      <td>${q.n}</td>
+      <td>${fmt(q.r)}</td>
+      <td>${fmt(q.cable)}</td>
+      <td>${fmt(q.wet)}</td>
+      <td>${fmt(q.partRtmRc)}</td>
+      <td>${fmt(q.partRmtuRc)}</td>
+      <td>${fmt(q.numerator)}</td>
+      <td><b>${(100*q.delta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b></td>
+      <td><b>${q.x}</b></td>
+    </tr>`).join('');
+}
+
+function drawMain(rows){
+  drawSvg(document.getElementById("chartbox"),rows,[
+    {key:"r",color:"#3366CC",width:2},
+    {key:"avg",color:"#DC3912",width:1.8},
+    {key:"cable",color:"#FCB03D",width:1.8},
+    {key:"wet",color:"#49AD4F",width:1.8},
+    {key:"abs",color:"#990099",width:1.8}
+  ],500);
+}
+function drawR(rows){
+  drawSvg(document.getElementById("chart2"),rows,[{key:"r",color:"#3366CC",width:2.2}],380);
+}
+
+function drawDiagnostic(rows){
+  const data=computeDelta(rows);
+  const last36=data.slice(-36);
+  const mean12=last36.length?last36.reduce((sum,x)=>sum+x.delta,0)/last36.length:null;
+
+  if(!data.length || mean12==null){
+    document.getElementById("diagnostic").innerHTML=`
+      <div class="alert">Média de Δ nas últimas 12 h: <b>—</b></div>`;
+    return;
+  }
+
+  const mean12Pct=100*mean12;
+  const avgDelta=data.reduce((sum,x)=>sum+x.delta,0)/data.length;
+  const avgDeltaPct=100*avgDelta;
+  const meanXPct=100*last36.reduce((sum,x)=>sum+x.x,0)/last36.length;
+  const pctX1=100*data.filter(x=>x.x===1).length/data.length;
+
+  let h=`
+    <div class="alert">Média de Δ nas últimas 12 horas: <b>${mean12Pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b></div>`;
+
+  if(mean12Pct>35){
+    h+=`<div class="alert bad"><b>POSSÍVEL DTQ EM CURTO, TIRAR PRINT E ENVIAR PARA A ENGENHARIA. ENVIAR TAMBÉM O LOG DO DTQ</b></div>`;
+  }
+
+
+  document.getElementById("diagnostic").innerHTML=h;
+}
+function drawSummary(rows,rS,aS,cS,wS,absS){
+  const duration=(rows[rows.length-1].d-rows[0].d)/86400000;
+  document.getElementById("summary").innerHTML=`
+  <b>Período:</b> ${fmtDate(rows[0].d)} → ${fmtDate(rows[rows.length-1].d)}<br>
+  <b>Registros:</b> ${rows.length.toLocaleString("pt-BR")}<br>
+  <b>Resistência medida:</b> mín. ${fmt(rS?.min)} • média ${fmt(rS?.avg)} • máx. ${fmt(rS?.max)}<br>
+  <b>Alarme da média (campo 19):</b> ${fmt(aS?.avg)}<br>
+  <b>Resistência do cabo:</b> ${fmt(cS?.avg)}<br>
+  <b>Mín. trilho úmido:</b> ${fmt(wS?.avg)}<br>
+  <b>Alarme absoluto (campo 22):</b> ${fmt(absS?.avg)}<br>
+  <b>Duração:</b> ${duration.toFixed(2)} dia(s)`;
+}
+
+function drawTable(rows){
+  const last=rows.slice(-80).reverse();
+  document.getElementById("tbody").innerHTML=last.map(x=>`
+    <tr>
+      <td>${fmtDate(x.d)}</td>
+      <td>${fmt(x.r)}</td>
+      <td>${fmt(x.avg)}</td>
+      <td>${fmt(x.cable)}</td>
+      <td>${fmt(x.wet)}</td>
+      <td>${fmt(x.abs)}</td>
+    </tr>`).join("");
+}
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(err => console.warn("Falha ao registrar modo offline:", err)));
+}
+</script>
+</body>
+</html>
