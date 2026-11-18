@@ -108,7 +108,8 @@ th:first-child,td:first-child{text-align:left}
   <div class="toolbar">
     <div class="field">
       <label>Arquivo de log DDS (.TXT)</label>
-      <input id="file" type="file" accept=".txt,text/plain">
+      <input id="file" type="file" accept=".txt,text/plain" aria-label="Escolher arquivo TXT" style="display:none">
+      <button id="chooseFile" type="button">Escolher arquivo TXT</button>
     </div>
     <div class="field event-field">
       <label>Evento analisado</label>
@@ -205,10 +206,25 @@ function fmtDate(d){
 }
 function isoDate(d){ return d.toISOString().slice(0,10); }
 
-document.getElementById("file").addEventListener("change", async e=>{
-  const f=e.target.files[0]; if(!f)return;
-  const text=await f.text();
-  parseText(text,f.name);
+const fileInput = document.getElementById("file");
+fileInput.disabled = false;
+document.getElementById("chooseFile").addEventListener("click", () => {
+  // Abre o seletor nativo do Android a partir de um toque explícito do usuário.
+  fileInput.click();
+});
+fileInput.addEventListener("click", () => {
+  document.getElementById("status").textContent = "Selecione um arquivo TXT armazenado no celular.";
+});
+fileInput.addEventListener("change", async e=>{
+  const f=e.target.files && e.target.files[0];
+  if(!f) return;
+  try {
+    const text = await f.text();
+    parseText(text, f.name);
+  } catch (err) {
+    document.getElementById("status").textContent = "Não foi possível ler o arquivo. Verifique se o TXT está acessível no aparelho e tente novamente.";
+    console.error("Erro ao ler TXT:", err);
+  }
 });
 
 function parseText(text,name){
